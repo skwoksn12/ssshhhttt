@@ -65,6 +65,12 @@ chmod 755 "$TARGET"
 ln -sf "$TARGET" /usr/local/bin/hkt-ipswitch
 
 # 启动安装向导
+# 关键：如果通过 curl | bash 调用，stdin 被管道占用，Go 读不到输入。
+# 通过 /dev/tty 重新连接终端。
 say "启动交互式安装向导"
 echo ""
-exec "$TARGET" install
+if [[ -t 0 ]]; then
+  exec "$TARGET" install
+else
+  exec "$TARGET" install </dev/tty
+fi
