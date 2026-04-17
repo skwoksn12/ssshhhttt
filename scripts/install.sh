@@ -65,12 +65,17 @@ chmod 755 "$TARGET"
 ln -sf "$TARGET" /usr/local/bin/hkt-ipswitch
 
 # 启动安装向导
-# 关键：如果通过 curl | bash 调用，stdin 被管道占用，Go 读不到输入。
-# 通过 /dev/tty 重新连接终端。
-say "启动交互式安装向导"
+# 所有额外参数透传给 install 子命令（支持 --non-interactive / --service-id / --fqdn 等）
+# 交互模式下：stdin 经管道调用时从 /dev/tty 重接终端，避免 curl|bash 吞 stdin
+say "启动安装向导"
 echo ""
-if [[ -t 0 ]]; then
+if [[ $# -gt 0 ]]; then
+  # 有参数 → 直接透传（非交互或混合模式都走这里）
+  exec "$TARGET" install "$@"
+elif [[ -t 0 ]]; then
+  # 纯交互，stdin 已在终端
   exec "$TARGET" install
 else
+  # 纯交互但 stdin 是管道，重连 tty
   exec "$TARGET" install </dev/tty
 fi
